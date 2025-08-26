@@ -1,0 +1,136 @@
+# Projektdokumentation – Backup & Restore mit AWS S3
+**Datum:** 26.08.2025  
+
+## Übersicht
+In diesem Projekt wurde ein **Backup- und Restore-System** aufgesetzt, das tägliche Backups von Systemdateien (und später Datenbanken) in einem **AWS S3-Bucket** speichert.  
+Die Backups werden automatisch komprimiert, versioniert und über eine Lifecycle-Policy nach 30 Tagen in Glacier verschoben und nach 90 Tagen gelöscht.  
+
+---
+
+## Einrichtung der AWS CLI
+Zuerst wurde die AWS CLI auf dem lokalen Rechner eingerichtet und mit temporären Zugangsdaten konfiguriert:
+
+```powershell
+# Zugangsdaten als Umgebungsvariablen setzen
+$env:AWS_ACCESS_KEY_ID="..."
+$env:AWS_SECRET_ACCESS_KEY="..."
+$env:AWS_SESSION_TOKEN="..."
+$env:AWS_DEFAULT_REGION="us-east-1"
+
+# Test der Verbindung
+aws sts get-caller-identity
+```
+
+---
+
+## Erstellung des S3-Buckets
+In der AWS CloudShell wurde ein eigener Bucket für die Backups erstellt.  
+
+```bash
+# Bucket-Namen definieren
+BUCKET=backup-raw-bachmann-pe24c
+
+# Bucket erstellen
+aws s3api create-bucket --bucket $BUCKET
+
+# Versioning aktivieren
+aws s3api put-bucket-versioning   --bucket $BUCKET   --versioning-configuration Status=Enabled
+```
+
+---
+
+## Lifecycle-Konfiguration
+Damit alte Backups automatisch archiviert oder gelöscht werden, wurde eine Lifecycle-Policy erstellt.
+
+```bash
+cat > lifecycle.json <<'JSON'
+{
+  "Rules": [ {
+    "ID": "ArchiveAndExpire",
+    "Status": "Enabled",
+    "Filter": {}, 
+    "Transitions": [ {
+      "Days": 30,
+      "StorageClass": "GLACIER"
+    } ],
+    "Expiration": {
+      "Days": 90
+    }
+  } ]
+}
+JSON
+
+aws s3api put-bucket-lifecycle-configuration   --bucket $BUCKET   --lifecycle-configuration file://lifecycle.json
+```
+
+Überprüfung der Regel:
+```bash
+aws s3api get-bucket-lifecycle-configuration --bucket $BUCKET
+```
+
+---
+
+## Test-Upload
+Ein Testfile wurde erzeugt und in den S3-Bucket hochgeladen.
+
+```bash
+echo "hello from learner lab" > /tmp/test.txt
+aws s3 cp /tmp/test.txt s3://$BUCKET/backups/raw/test.txt
+```
+
+Überprüfung:
+```bash
+aws s3 ls s3://$BUCKET/backups/raw/
+```
+
+---
+
+## Automatisierte Backups mit Cron
+Auf der EC2-Instanz wurde ein Script für tägliche Backups erstellt (`/opt/backup/daily_backup.sh`).  
+Es erstellt ein inkrementelles Tar-Archiv und lädt es nach S3 hoch.  
+
+### Script-Inhalt:
+```bash
+#!/usr/bin/env bash
+set -euo pipefail
+source /opt/backup/backup.env
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+LOG=/var/backups/logs/daily-$TS.log
+exec > >(tee -a "$LOG") 2>&1
+
+STATE=/var/backups/state/files.snar
+ARCH=/var/backups/tmp/files-$TS.tar.gz
+
+# Backup von /etc (und optional /var/www, falls vorhanden)
+TARGETS="/etc"
+[ -d /var/www ] && TARGETS="$TARGETS /var/www"
+
+sudo tar --listed-incremental="$STATE" -czf "$ARCH" $TARGETS   --ignore-failed-read --warning=no-file-changed
+
+aws s3 cp "$ARCH" s3://$S3_BUCKET/backups/raw/files-$TS.tar.gz --region "$AWS_REGION"
+rm -f "$ARCH"
+```
+
+Das Script wurde ausführbar gemacht:
+```bash
+sudo chmod +x /opt/backup/daily_backup.sh
+```
+
+Ein Cronjob wurde eingerichtet, damit das Backup täglich um 02:00 Uhr läuft:
+```bash
+( crontab -l 2>/dev/null; echo "0 2 * * * /opt/backup/daily_backup.sh" ) | crontab -
+```
+
+---
+
+## Prüfung der Backups
+Alle gespeicherten Backups im S3-Bucket anzeigen:
+```bash
+aws s3 ls s3://$BUCKET/backups/raw/ --region us-east-1
+```
+
+---
+
+## Fazit
+Am 26.08.2025 wurde erfolgreich ein automatisiertes Backup-System mit AWS S3 implementiert.  
+Die Backups sind versioniert, werden automatisch archiviert und können jederzeit wiederhergestellt werden.  
