@@ -2,68 +2,75 @@
 
 ## 📌 Projektübersicht
 Dieses Projekt wurde im Rahmen des Moduls **M143 – Backup- und Restore-Systeme implementieren** erstellt.  
-Ziel ist es, ein **hybrides Backup- und Restore-System** in **AWS** zu entwerfen, umzusetzen und zu dokumentieren.  
+Ziel war es, ein **hybrides Backup- und Restore-System** in **AWS** zu entwerfen, umzusetzen und zu dokumentieren.  
 
 Das Projekt wird vollständig in **Markdown in GitLab** dokumentiert.  
-Alle relevanten Unterlagen, Skripte und Diagramme sind im Repository enthalten.  
+Alle relevanten Unterlagen, Skripte, Diagramme und Testprotokolle sind im Repository enthalten.  
 
 ---
 
 ## 🎯 Use Case
 - **User Story:**  
-  Als Projektteam möchten wir unsere Web-Applikation (EC2 + RDS) und gemeinsame Dateien täglich sichern,  
-  90 Tage aufbewahren und aus S3/Glacier zuverlässig wiederherstellen können.  
-  Damit stellen wir sicher, dass wir bei Ausfällen in maximal **2 Stunden (RTO)** weiterarbeiten können und höchstens **24 Stunden Daten (RPO)** verloren gehen.  
+  Ich sichere meine **EC2-Instanz (Linux VM)**, Anwendungsdaten und eine **RDS-MySQL-Datenbank** täglich,  
+  bewahre die Backups **90 Tage** auf und kann sie aus **S3/Glacier** zuverlässig wiederherstellen.  
+  Damit stelle ich sicher, dass ich bei Ausfällen in maximal **2 Stunden (RTO)** weiterarbeiten kann und höchstens **24 Stunden Daten (RPO)** verloren gehen.  
 
 - **Rahmenbedingungen:**  
   - Rechtliche Vorgaben: DSG / DSGVO, BSI-IT-Grundschutz, GebüV  
   - Cloud: **AWS Learner Lab** (50 $ Budget)  
-  - Region: **eu-central-1 (Frankfurt)**  
+  - Region: **us-east-1 (N. Virginia)**  
 
 ---
 
 ## 🏗️ Architektur
-- **EC2 (t3.micro):** Webserver mit Anwendungsdaten  
-- **RDS (db.t3.micro):** MySQL/Postgres Datenbank  
-- **S3 Buckets:** Backup-Speicher (Versionierung, Lifecycle → Glacier)  
-- **CloudWatch:** Monitoring, Alarme, Benachrichtigungen  
-- **IAM:** Rollen und Rechteverwaltung  
-- **KMS (optional):** Verschlüsselungsschlüssel für Backups  
+- **EC2 (t3.micro):** Linux-VM, auf der die Backup-Skripte und Cronjobs laufen  
+- **RDS (db.t3.micro):** MySQL-Datenbank mit Dumps & Snapshots  
+- **S3 Bucket:** Zentrales Backup-Repository  
+  - Versionierung aktiviert  
+  - Lifecycle: nach 30 Tagen → Glacier, nach 90 Tagen → Löschung  
+- **Cronjobs:** Automatisierung der täglichen Backups (Dateien + DB) und wöchentliche AMIs  
+- **SNS + Logs:** Benachrichtigung und Nachvollziehbarkeit von Backup-Fehlern  
+- **IAM / Security Groups:** Least-Privilege Zugriff, DB nur von EC2 erreichbar  
 
 📊 Diagramme → siehe [`/docs/architektur`](docs/architektur)
 
 ---
 
 ## 🔄 Backup-Strategie
-- **Systemdaten:** EC2 AMI & EBS Snapshots (wöchentlich Voll)  
-- **Konfigurationsdaten:** `/etc`, App-Configs (wöchentlich)  
-- **Benutzerdaten:** Datei-Backups (täglich inkrementell, wöchentlich voll)  
-- **Datenbank:** tägliche Dumps + RDS Snapshots  
-- **Speicherorte:**  
-  - 30 Tage in S3 Standard  
-  - danach Archivierung nach S3 Glacier (bis 90 Tage)  
+- **Systemdaten:** wöchentliche AMIs (EC2 Images)  
+- **Konfigurationsdaten:** `/etc` & weitere kritische Verzeichnisse (täglich inkrementell, wöchentlich voll)  
+- **Benutzerdaten:** Anwendung & Dateien (täglich nach S3)  
+- **Datenbank:** tägliche MySQL-Dumps nach S3 + tägliche RDS-Snapshots  
+
+**Speicherorte:**  
+- 30 Tage in S3 Standard  
+- Danach Archivierung nach S3 Glacier (bis 90 Tage)  
 
 ---
 
 ## 🛠️ Umsetzung
 - **Automatisierung:**  
-  - Cronjobs auf EC2 (Dateien & DB)  
-  - EventBridge + Lambda (RDS Snapshots)  
-- **Monitoring:**  
-  - CloudWatch Logs & Alarme  
-  - Benachrichtigungen via SNS (E-Mail)  
+  - `daily_backup.sh` → Datei- und DB-Backups, täglich via Cron um 02:00 Uhr  
+  - `weekly_image.sh` → AMI-Snapshots der EC2, wöchentlich via Cron  
+  - `rds_snapshot.sh` → tägliche RDS-Snapshots  
+- **S3:** Versioning + Lifecycle-Regeln  
+- **Security:** Buckets verschlüsselt (SSE-S3), Public Access Block aktiv, DB nicht öffentlich erreichbar  
+- **Monitoring:** Cron-Logs in `/var/backups/logs`, SNS-Mail bei Fehlschlägen  
 
 🔗 Skripte → siehe [`/scripts`](scripts)
 
 ---
 
 ## 🔁 Restore-Szenarien
-1. **Einzelne Datei wiederherstellen** (S3 → lokal)  
-2. **Datenbank-Dump einspielen**  
-3. **EC2 Wiederherstellung** (AMI → neue Instanz)  
-4. **RDS Wiederherstellung** (Snapshot → neue Instanz)  
+1. **Einzelne Datei wiederherstellen** (S3 → EC2 → entpacken)  
+2. **Gesamtes File-Backup einspielen** (Archiv nach `/etc` zurückkopieren)  
+3. **EC2 Wiederherstellung** (neue Instanz aus AMI starten)  
+4. **RDS Wiederherstellung** (neue Instanz aus Snapshot erstellen)  
+5. **DB-Dump einspielen** (S3 → EC2 → MySQL Import)  
 
-Dokumentierte Tests → [`/docs/restore_tests`](docs/restore_tests)
+Alle Szenarien wurden getestet und dokumentiert.  
+
+➡️ Siehe [`/docs/restore_tests`](docs/restore_tests)
 
 ---
 
@@ -81,4 +88,4 @@ Dokumentierte Tests → [`/docs/restore_tests`](docs/restore_tests)
 
 ## 👤 Autor
 - **Name:** Noah Bachmann  
-- **Klasse:** PE24c
+- **Klasse:** PE24c  
