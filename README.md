@@ -4,73 +4,84 @@
 Dieses Projekt wurde im Rahmen des Moduls **M143 – Backup- und Restore-Systeme implementieren** erstellt.  
 Ziel war es, ein **hybrides Backup- und Restore-System** in **AWS** zu entwerfen, umzusetzen und zu dokumentieren.  
 
+Der Fokus liegt auf einer **Schul-Datenbank** und IT-Systemen im Bildungsbereich.  
+Sensible Daten wie **Schüler:innen-Stammdaten, Noten, Absenzen und Benutzerkonten** müssen nach DSG/DSGVO besonders geschützt werden.  
+Ein Ausfall oder Datenverlust könnte den Schulbetrieb erheblich stören (z. B. Verlust von Noten oder Absenzen).
+
 Das Projekt wird vollständig in **Markdown in GitLab** dokumentiert.  
 Alle relevanten Unterlagen, Skripte, Diagramme und Testprotokolle sind im Repository enthalten.  
 
 ---
 
-## 🎯 Use Case
+## 🎯 Use Case (Schule)
 - **User Story:**  
-  Ich sichere meine **EC2-Instanz (Linux VM)**, Anwendungsdaten und eine **RDS-MySQL-Datenbank** täglich,  
-  bewahre die Backups **90 Tage** auf und kann sie aus **S3/Glacier** zuverlässig wiederherstellen.  
-  Damit stelle ich sicher, dass ich bei Ausfällen in maximal **2 Stunden (RTO)** weiterarbeiten kann und höchstens **24 Stunden Daten (RPO)** verloren gehen.  
+  Als Schul-IT-Administrator sichere ich die **EC2-Instanz (Linux VM)** mit der Schulsoftware, Anwendungsdaten und eine **RDS-MySQL-Datenbank** (Schülerverwaltung, Noten) täglich.  
+  Backups werden **90 Tage** aufbewahrt und können aus **S3/Glacier** zuverlässig wiederhergestellt werden.  
+  Damit stelle ich sicher, dass die Schule bei Ausfällen in maximal **2 Stunden (RTO)** wieder arbeiten kann und höchstens **1 Tag Daten (RPO)** verloren geht.  
 
 - **Rahmenbedingungen:**  
-  - Rechtliche Vorgaben: DSG / DSGVO, BSI-IT-Grundschutz, GebüV  
+  - Rechtliche Vorgaben: DSG / DSGVO (Schülerdaten = besonders schützenswert), BSI-IT-Grundschutz  
   - Cloud: **AWS Learner Lab** (50 $ Budget)  
   - Region: **us-east-1 (N. Virginia)**  
 
 ---
 
 ## 🏗️ Architektur
-- **EC2 (t3.micro):** Linux-VM, auf der die Backup-Skripte und Cronjobs laufen  
-- **RDS (db.t3.micro):** MySQL-Datenbank mit Dumps & Snapshots  
+- **EC2 (t3.micro):** Linux-VM mit Backup-Skripten und Cronjobs  
+- **RDS (db.t3.micro):** MySQL-Datenbank für Schülerdaten  
 - **S3 Bucket:** Zentrales Backup-Repository  
   - Versionierung aktiviert  
   - Lifecycle: nach 30 Tagen → Glacier, nach 90 Tagen → Löschung  
-- **Cronjobs:** Automatisierung der täglichen Backups (Dateien + DB) und wöchentliche AMIs  
-- **SNS + Logs:** Benachrichtigung und Nachvollziehbarkeit von Backup-Fehlern  
-- **IAM / Security Groups:** Least-Privilege Zugriff, DB nur von EC2 erreichbar  
+- **Cronjobs:** Automatisierung der täglichen Backups (Dateien + DB)  
+- **Mail-Benachrichtigung:** Erfolgs- und Fehler-Reports via Gmail  
+- **IAM / Security Groups:** Least-Privilege Zugriff, RDS nur von EC2 erreichbar  
 
 📊 Diagramme → siehe [`/docs/architektur`](docs/architektur)
 
 ---
 
 ## 🔄 Backup-Strategie
-- **Systemdaten:** wöchentliche AMIs (EC2 Images)  
-- **Konfigurationsdaten:** `/etc` & weitere kritische Verzeichnisse (täglich inkrementell, wöchentlich voll)  
-- **Benutzerdaten:** Anwendung & Dateien (täglich nach S3)  
-- **Datenbank:** tägliche MySQL-Dumps nach S3 + tägliche RDS-Snapshots  
+- **Systemdaten (EC2):** wöchentliche AMIs  
+- **Konfigurationsdaten:** `/etc` und weitere kritische Verzeichnisse  
+- **Anwendungsdaten:** tägliche Sicherung in S3  
+- **Datenbank (Schule):** tägliche Dumps nach S3 + tägliche RDS-Snapshots  
 
-**Speicherorte:**  
+**Aufbewahrung:**  
 - 30 Tage in S3 Standard  
-- Danach Archivierung nach S3 Glacier (bis 90 Tage)  
+- Archivierung bis 90 Tage in S3 Glacier  
+- danach automatische Löschung (Datensparsamkeit nach DSGVO)  
 
 ---
 
 ## 🛠️ Umsetzung
 - **Automatisierung:**  
-  - `daily_backup.sh` → Datei- und DB-Backups, täglich via Cron um 02:00 Uhr  
-  - `weekly_image.sh` → AMI-Snapshots der EC2, wöchentlich via Cron  
+  - `daily_backup.sh` → Datei- und DB-Backups (Cronjob 02:00 Uhr)  
+  - `weekly_image.sh` → AMI-Snapshots der EC2  
   - `rds_snapshot.sh` → tägliche RDS-Snapshots  
 - **S3:** Versioning + Lifecycle-Regeln  
-- **Security:** Buckets verschlüsselt (SSE-S3), Public Access Block aktiv, DB nicht öffentlich erreichbar  
-- **Monitoring:** Cron-Logs in `/var/backups/logs`, SNS-Mail bei Fehlschlägen  
+- **Security:** Buckets verschlüsselt (SSE-S3), Public Access Block aktiv  
+- **Monitoring:** Cron-Logs in `/var/backups/logs`, Mail bei Fehlschlägen  
 
 🔗 Skripte → siehe [`/scripts`](scripts)
 
 ---
 
-## 🔁 Restore-Szenarien
-1. **Einzelne Datei wiederherstellen** (S3 → EC2 → entpacken)  
-2. **Gesamtes File-Backup einspielen** (Archiv nach `/etc` zurückkopieren)  
+## 🔁 Restore-Szenarien (Schule)
+1. **Einzelne Schülerakte** wiederherstellen (S3 → EC2 → Import)  
+2. **Noten-Datenbank** nach fehlerhaftem Update zurückspielen  
 3. **EC2 Wiederherstellung** (neue Instanz aus AMI starten)  
-4. **RDS Wiederherstellung** (neue Instanz aus Snapshot erstellen)  
-5. **DB-Dump einspielen** (S3 → EC2 → MySQL Import)  
-
-Alle Szenarien wurden getestet und dokumentiert.  
+4. **RDS Wiederherstellung** (neue Instanz aus Snapshot)  
+5. **Komplette Datenbank aus Dump** wiederherstellen  
 
 ➡️ Siehe [`/docs/restore_tests`](docs/restore_tests)
+
+---
+
+## ⚖️ DSGVO & Schule
+- **Recht auf Vergessenwerden:** Daten von ehemaligen Schüler:innen müssen nach Ablauf der Aufbewahrungsfrist auch aus Backups entfernt werden.  
+- **Zweckbindung:** Backups dürfen nur zur Datensicherung, nicht für andere Zwecke genutzt werden.  
+- **Transparenz:** Schüler:innen und Eltern haben ein Auskunftsrecht, welche Daten gespeichert und gesichert werden.  
+- **Datensparsamkeit:** Lifecycle-Regeln sorgen für automatische Löschung nach 90 Tagen.  
 
 ---
 
