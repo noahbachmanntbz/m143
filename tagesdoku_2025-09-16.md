@@ -19,12 +19,10 @@
 -   Testlauf durchgeführt
     -   `daily_backup.sh` → Backup erstellt und erfolgreich nach S3
         hochgeladen\
-    -   `weekly_image.sh` → Fehler erkannt (fehlende Instance-ID),
-        nächste Anpassung vorbereitet
+    -   `weekly_image.sh` → Funktionierte muss aber noch einige Dinge angepasst werden da noch nciht alles zu 100% stimmt auch wenn die Mail versendet wurde
 
 ## 📌 Nächste Schritte
 
--   `weekly_image.sh` so anpassen, dass automatisch die Instance-ID der
-    EC2 genutzt wird\
+-   `weekly_image.sh` hat auch funktioniert aber noch nicht zu 100 % es müssen noch einige anpassungen vorgenommen werden
 -   `rds_backup.sh` testen (Dump + Snapshot der Datenbank *school*)\
 -   Restore-Test mit den Daten aus S3 oder Snapshot durchführen
