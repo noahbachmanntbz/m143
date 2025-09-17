@@ -99,4 +99,5 @@ Alle relevanten Unterlagen, Skripte, Diagramme und Testprotokolle sind im Reposi
 
 ## 👤 Autor
 - **Name:** Noah Bachmann  
-- **Klasse:** PE24c  
+- **Klasse:** PE24c 
+- **Modul:** M143 
