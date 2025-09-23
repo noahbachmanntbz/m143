@@ -27,5 +27,5 @@ Die Restore-Szenarien beschreiben, wie nach einem Ausfall oder Fehler Daten wied
 4. **RDS Wiederherstellung**: Snapshot zurückspielen  
 5. **DB-Dump Restore**: Dump von S3 nach MySQL importieren  
 
-📌 **Abbildung 2:** Restore-Szenarien  
-👉 Hier das zweite Draw.io-Diagramm einfügen
+## 🔁 Restore-Diagramm
+![Restore Übersicht](docs/img/restore.png)
