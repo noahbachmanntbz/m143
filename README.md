@@ -37,7 +37,7 @@ Alle Projektdetails sind in **Markdown** dokumentiert und im **GitLab-Repository
 - **Mail-Benachrichtigung:** Erfolgs- und Fehler-Reports via Gmail  
 - **IAM / Security Groups:** Least-Privilege, RDS nur von EC2 erreichbar  
 
-📊 Diagramme → [`/docs/architektur`](docs/architektur)
+📊 Diagramme → [`/docs/architektur`](docs/architektur.md)
 
 ---
 
