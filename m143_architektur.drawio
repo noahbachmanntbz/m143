@@ -1,0 +1,48 @@
+<mxfile host="Electron" agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) draw.io/28.1.2 Chrome/138.0.7204.243 Electron/37.4.0 Safari/537.36" version="28.1.2">
+  <diagram id="AWS-Backup-Restore" name="M143 AWS Architektur">
+    <mxGraphModel dx="1152" dy="790" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="827" pageHeight="1169" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="2" value="" style="shape=actor;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="80" y="80" width="80" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="3" value="EC2 Instanz (Backup-Skripte + Cronjobs)" style="shape=rectangle;fillColor=#ffe6cc;strokeColor=#d79b00;fontColor=light-dark(#000000,#6B3D3D);" parent="1" vertex="1">
+          <mxGeometry x="300" y="180" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="4" value="RDS MySQL (School-DB)" style="shape=cylinder;fillColor=#dae8fc;strokeColor=#6c8ebf;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="60" y="300" width="160" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="5" value="S3 Bucket (Backups, Lifecycle)" style="shape=datastore;fillColor=#d5e8d4;strokeColor=#82b366;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="600" y="300" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="6" value="S3 Glacier (Archiv)" style="shape=datastore;fillColor=#97d077;strokeColor=#5a7d3f;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="600" y="440" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="7" value="Mail-Benachrichtigung (Gmail)" style="shape=ellipse;fillColor=#f8cecc;strokeColor=#b85450;fontColor=#000000;" parent="1" vertex="1">
+          <mxGeometry x="300" y="440" width="220" height="60" as="geometry" />
+        </mxCell>
+        <mxCell id="8" value="SSH Zugriff" style="entryX=0.5;entryY=0;entryDx=0;entryDy=0;" parent="1" source="2" target="3" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="9" value="mysqldump + Snapshots" parent="1" source="3" target="4" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="10" value="Datei- &amp; DB-Backups" parent="1" source="3" target="5" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="11" value="Lifecycle 30d → Glacier, 90d → Delete" parent="1" source="5" target="6" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="12" value="Fehler/OK Reports" parent="1" source="3" target="7" edge="1">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <UserObject label="&lt;span style=&quot;color: rgb(237, 237, 237); text-wrap-mode: nowrap;&quot;&gt;Schul-Admin (SSH, Monitoring)&lt;/span&gt;" placeholders="1" name="Variable" id="nkWoKDcOHXbcq-bsdls6-12">
+          <mxCell style="text;html=1;strokeColor=none;fillColor=none;align=center;verticalAlign=middle;whiteSpace=wrap;overflow=hidden;" vertex="1" parent="1">
+            <mxGeometry x="35" y="150" width="180" height="20" as="geometry" />
+          </mxCell>
+        </UserObject>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
