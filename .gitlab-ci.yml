@@ -1,0 +1,27 @@
+stages:
+  - build
+
+build_pdf:
+  stage: build
+  image: pandoc/latex:latest
+  variables:
+    LC_ALL: C.UTF-8
+    LANG: C.UTF-8
+  script:
+    - echo "📄 Baue Projektdoku..."
+    - FILES="README.md INSTALLATION.md"
+    - if ls docs/*.md >/dev/null 2>&1; then FILES="$FILES docs/*.md"; fi
+    - if ls docs/tagesdoku/*.md >/dev/null 2>&1; then FILES="$FILES docs/tagesdoku/*.md"; fi
+    - pandoc $FILES -s --toc \
+        --pdf-engine=xelatex \
+        -V lang=de \
+        -V mainfont="DejaVu Serif" \
+        -V sansfont="DejaVu Sans" \
+        -V monofont="DejaVu Sans Mono" \
+        --resource-path=".:docs:docs/img" \
+        -o projekt-doku.pdf
+  artifacts:
+    when: always
+    paths:
+      - projekt-doku.pdf
+    expire_in: 1 week
