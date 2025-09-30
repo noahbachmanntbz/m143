@@ -109,7 +109,7 @@ Alle Projektdetails sind in **Markdown** dokumentiert und im **GitLab-Repository
 - [26.08.2025](docs/tagesdoku/26.08.2025.md)  
 - [02.09.2025](docs/tagesdoku/02.09.2025.md)  
 - [16.09.2025](docs/tagesdoku/16.09.2025.md)
-- [30.09.2025](docs/tagesdoku/30.09.2025.md)
+- [30.09.2025](docs/tagesdoku/23.09.2025.md)
 
 ---
 
