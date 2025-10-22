@@ -41,7 +41,7 @@ Dieses Dokument beschreibt das Backup-Konzept für die Schul-Datenbank und die d
 - **Automatische Löschung nach 90 Tagen**  
   - Umsetzung Datensparsamkeit nach DSGVO
 
-[S3 Aufbau](./img/s3_aufbau.png)
+![S3 Aufbau](./img/s3_aufbau.png)
 ---
 
 ## 🔐 Sicherheit
