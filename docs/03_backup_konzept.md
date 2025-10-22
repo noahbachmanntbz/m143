@@ -73,4 +73,4 @@ Dieses Dokument beschreibt das Backup-Konzept für die Schul-Datenbank und die d
 
 ---
 
-✅ Das Backup-Konzept stellt sicher, dass die Schule bei Ausfällen oder Datenverlust den Betrieb innerhalb weniger Stunden wieder aufnehmen kann.
+Das Backup-Konzept stellt sicher, dass die Schule bei Ausfällen oder Datenverlust den Betrieb innerhalb weniger Stunden wieder aufnehmen kann.

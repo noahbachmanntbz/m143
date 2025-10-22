@@ -85,4 +85,4 @@ Dieses Dokument beschreibt die Wiederherstellungsszenarien für das Backup-Syste
 
 ---
 
-✅ Mit diesen Anleitungen lassen sich alle relevanten Systeme (Dateien, EC2, RDS und Datenbank) zuverlässig wiederherstellen.
+Mit diesen Anleitungen lassen sich alle relevanten Systeme (Dateien, EC2, RDS und Datenbank) zuverlässig wiederherstellen.
