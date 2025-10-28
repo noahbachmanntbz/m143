@@ -18,6 +18,7 @@ Backups werden automatisiert in **S3** gespeichert und mit **Lifecycle-Richtlini
    - Rolle: Ausführung der Backup-Skripte und Cronjobs  
    - Verantwortlich für: Datei-Backups, Datenbank-Dumps, AMI-Erstellung  
    - Zugriff nur für Administrator:innen (SSH, IAM-Rolle)
+   ![Wo meine Backup Scripts sind](image.png)
 
 2. **RDS MySQL (db.t3.micro)**  
    - Datenbank: `school`  

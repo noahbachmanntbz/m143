@@ -1,94 +1,113 @@
 #!/usr/bin/env bash
+# M143 – Daily Backup (Files + optional MySQL/RDS)
+# Version: 1.2 – mit SNS + Gmail-Fallback via lib_notify.sh
+
 set -euo pipefail
 
-# ======= Konfiguration =======
-AWS_REGION="us-east-1"
-S3_BUCKET="DEIN-S3-BUCKET"
-S3_PREFIX_FILES="backups/files"
-S3_PREFIX_DB="backups/db"
-WORKDIR="/var/backups/m143"
-LOGDIR="${WORKDIR}/logs"
+ENV_FILE="/opt/backup/backup.env"
+NOTIFY_LIB="/opt/backup/lib_notify.sh"
 
-# Verzeichnisse, die gesichert werden sollen (Leerzeichen-getrennt)
-INCLUDE_DIRS="/etc /opt/m143"
+[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+: "${AWS_REGION:=us-east-1}"
+: "${S3_BUCKET:?S3_BUCKET fehlt – bitte in /opt/backup/backup.env setzen}"
+: "${BACKUP_ROOT:=/var/backups}"
 
-# MySQL / RDS
-DB_HOST="DEIN-RDS-ENDPOINT.rds.amazonaws.com"
-DB_USER="admin"
-DB_NAME="schule"
-DB_PASS="BITTE_EINTRAGEN"
+if [[ -f "$NOTIFY_LIB" ]]; then
+  source "$NOTIFY_LIB"
+else
+  notify(){ echo "[NOTIFY:$1] $2" >&2; }
+fi
 
-# Retention lokal (Tage)
-LOCAL_RETENTION_DAYS=7
+LOG_DIR="$BACKUP_ROOT/logs"
+STATE_DIR="$BACKUP_ROOT/state"
+TMP_DIR="$BACKUP_ROOT/tmp"
+mkdir -p "$LOG_DIR" "$STATE_DIR" "$TMP_DIR"
 
-# ======= Helpers =======
-TIMESTAMP="$(date +%F_%H-%M-%S)"
-HOSTNAME_SHORT="$(hostname -s)"
-LOG_FILE="${LOGDIR}/daily_${TIMESTAMP}.log"
-FILES_TAR="${WORKDIR}/files_${HOSTNAME_SHORT}_${TIMESTAMP}.tar.gz"
-DB_DUMP_GZ="${WORKDIR}/${DB_NAME}_${TIMESTAMP}.sql.gz"
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+LOG="$LOG_DIR/daily-$TS.log"
+exec > >(tee -a "$LOG") 2>&1
 
-mkdir -p "$WORKDIR" "$LOGDIR"
-
-notify() { /opt/m143/sendmail.py "$1" "$2" || true; }
-
-fail() {
+cleanup(){ rm -f "${FILE_ARCH:-}" "${FILE_SHA:-}" "${DB_GZ:-}" "${DB_SHA:-}" 2>/dev/null || true; }
+fail(){
   local msg="$1"
-  echo "[ERROR] $msg" | tee -a "$LOG_FILE"
-  notify "M143 BACKUP FEHLER – daily (${HOSTNAME_SHORT}) ${TIMESTAMP}" \
-"Backup fehlgeschlagen.
+  echo "[ERROR] $msg"
+  notify "DAILY BACKUP FAILED – $(hostname -s)" "Backup fehlgeschlagen.
 
-Host: ${HOSTNAME_SHORT}
-Zeit: ${TIMESTAMP}
-Fehler: ${msg}
-
-Log (Ende):
-$(tail -n 80 "$LOG_FILE" 2>/dev/null || true)"
-  exit 1
+Zeit: $TS
+Host: $(hostname -s)
+Fehler: $msg
+Log: $LOG"
 }
+trap 'rc=$?; if (( rc!=0 )); then fail "Exit code $rc"; fi; cleanup; exit $rc' EXIT
 
-trap 'fail "Script abgebrochen (exit code $?)"' ERR
+echo "== M143 Daily Backup gestartet @ $TS =="
 
-# ======= Backup läuft =======
-{
-  echo "[INFO] Starte DAILY-Backup ${TIMESTAMP}"
+# ---- Files ----
+TARGETS="/etc"
+[[ -d /var/www ]] && TARGETS="$TARGETS /var/www"
 
-  # 1) Dateien packen
-  echo "[INFO] Archiviere Verzeichnisse: ${INCLUDE_DIRS}"
-  tar -czf "${FILES_TAR}" ${INCLUDE_DIRS}
+FILE_STATE="$STATE_DIR/files.snar"
+FILE_ARCH="$TMP_DIR/files-$TS.tar.gz"
+FILE_SHA="${FILE_ARCH}.sha256"
 
-  # 2) DB-Dump (komprimiert)
-  echo "[INFO] Erstelle MySQL-Dump von ${DB_NAME}"
-  mysqldump --user="${DB_USER}" --password="${DB_PASS}" --host="${DB_HOST}" \
-            --single-transaction --quick "${DB_NAME}" \
-    | gzip -c > "${DB_DUMP_GZ}"
+echo "[INFO] Datei-Backup Ziele: $TARGETS"
+tar --listed-incremental="$FILE_STATE" -czf "$FILE_ARCH" $TARGETS \
+  --ignore-failed-read --warning=no-file-changed
+sha256sum "$FILE_ARCH" > "$FILE_SHA"
 
-  # 3) Prüfsummen
-  sha256sum "${FILES_TAR}" | awk '{print $1}' > "${FILES_TAR}.sha256"
-  sha256sum "${DB_DUMP_GZ}" | awk '{print $1}' > "${DB_DUMP_GZ}.sha256"
+echo "[INFO] Upload Datei-Backup → s3://$S3_BUCKET/backups/raw/"
+aws s3 cp "$FILE_ARCH" "s3://$S3_BUCKET/backups/raw/$(basename "$FILE_ARCH")" --region "$AWS_REGION"
+aws s3 cp "$FILE_SHA"  "s3://$S3_BUCKET/backups/raw/$(basename "$FILE_SHA")"  --region "$AWS_REGION"
 
-  # 4) Upload nach S3
-  echo "[INFO] Upload nach S3"
-  aws s3 cp "${FILES_TAR}"        "s3://${S3_BUCKET}/${S3_PREFIX_FILES}/" --region "$AWS_REGION"
-  aws s3 cp "${FILES_TAR}.sha256" "s3://${S3_BUCKET}/${S3_PREFIX_FILES}/" --region "$AWS_REGION"
-  aws s3 cp "${DB_DUMP_GZ}"       "s3://${S3_BUCKET}/${S3_PREFIX_DB}/"    --region "$AWS_REGION"
-  aws s3 cp "${DB_DUMP_GZ}.sha256" "s3://${S3_BUCKET}/${S3_PREFIX_DB}/"   --region "$AWS_REGION"
+aws s3 cp "$FILE_ARCH" "s3://$S3_BUCKET/backups/latest/files-latest.tar.gz" --region "$AWS_REGION"
+echo "[OK] Datei-Backup fertig."
 
-  # 5) Lokale Altlasten löschen
-  echo "[INFO] Lösche lokale Dateien älter als ${LOCAL_RETENTION_DAYS} Tage"
-  find "$WORKDIR" -type f -mtime +"${LOCAL_RETENTION_DAYS}" -delete
+# ---- DB (optional) ----
+if [[ -n "${DB_HOST:-}" && -n "${DB_NAME:-}" && -n "${DB_USER:-}" && -n "${DB_PASS:-}" ]]; then
+  echo "[INFO] DB-Backup aktiviert: ${DB_NAME}@${DB_HOST}"
 
-  echo "[INFO] DAILY-Backup erfolgreich"
-} | tee -a "$LOG_FILE"
+  if ! command -v mysqldump >/dev/null 2>&1; then
+    echo "[WARN] mysqldump fehlt – DB-Backup übersprungen."
+    notify "DAILY DB BACKUP SKIPPED – $(hostname -s)" "mysqldump fehlt auf dem System.
+Zeit: $TS"
+  else
+    DB_DUMP="$TMP_DIR/${DB_NAME}-${TS}.sql"
+    DB_GZ="${DB_DUMP}.gz"
+    DB_SHA="${DB_GZ}.sha256"
 
-notify "M143 BACKUP OK – daily (${HOSTNAME_SHORT}) ${TIMESTAMP}" \
-"Backup erfolgreich.
+    # SSL-Flag kompatibel ermitteln
+    SSL_FLAG=""
+    if mysqldump --help 2>&1 | grep -q -- '--ssl-mode'; then
+      [[ -n "${DB_SSL:-}" ]] && SSL_FLAG="--ssl-mode=${DB_SSL}"
+    else
+      [[ -n "${DB_SSL:-}" ]] && SSL_FLAG="--ssl"
+    fi
 
-Host: ${HOSTNAME_SHORT}
-Zeit: ${TIMESTAMP}
+    echo "[INFO] Erzeuge DB-Dump…"
+    mysqldump -h "$DB_HOST" -u "$DB_USER" -p"$DB_PASS" \
+      $SSL_FLAG \
+      --single-transaction --routines --events "$DB_NAME" > "$DB_DUMP"
+    gzip -f "$DB_DUMP"
+    sha256sum "$DB_GZ" > "$DB_SHA"
+
+    echo "[INFO] Upload DB-Dump → s3://$S3_BUCKET/backups/db/school/"
+    aws s3 cp "$DB_GZ"  "s3://$S3_BUCKET/backups/db/school/$(basename "$DB_GZ")"  --region "$AWS_REGION"
+    aws s3 cp "$DB_SHA" "s3://$S3_BUCKET/backups/db/school/$(basename "$DB_SHA")" --region "$AWS_REGION"
+    aws s3 cp "$DB_GZ"  "s3://$S3_BUCKET/backups/latest/school-latest.sql.gz"     --region "$AWS_REGION"
+
+    echo "[OK] DB-Backup fertig."
+  fi
+else
+  echo "[WARN] DB-Variablen fehlen – DB-Backup wird übersprungen."
+fi
+
+echo "[SUCCESS] Daily Backup erfolgreich. TS: $TS"
+notify "DAILY BACKUP OK – $(hostname -s)" "Backup erfolgreich abgeschlossen.
+
+Zeit: $TS
+Host: $(hostname -s)
+Log: $LOG
 
 S3:
-- s3://${S3_BUCKET}/${S3_PREFIX_FILES}/$(basename "${FILES_TAR}")
-- s3://${S3_BUCKET}/${S3_PREFIX_DB}/$(basename "${DB_DUMP_GZ}")"
-
-echo "[DONE]"
+- s3://$S3_BUCKET/backups/raw/$(basename "$FILE_ARCH")
+- s3://$S3_BUCKET/backups/db/school/$(basename "${DB_GZ:-<kein_DB_Dump>}")"

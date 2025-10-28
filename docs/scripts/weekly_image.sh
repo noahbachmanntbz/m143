@@ -1,52 +1,81 @@
 #!/usr/bin/env bash
+# M143 – Weekly Image (EC2 AMI Snapshot)
+# Version: 1.1 (mit Notify & Prune)
+
 set -euo pipefail
 
-AWS_REGION="us-east-1"
-NAME_PREFIX="m143-weekly-ami"
-RETENTION_WEEKS=4
+ENV_FILE="/opt/backup/backup.env"
+NOTIFY_LIB="/opt/backup/lib_notify.sh"
 
-notify() { /opt/m143/sendmail.py "$1" "$2" || true; }
-fail() { notify "M143 BACKUP FEHLER – weekly AMI" "$1"; echo "$1" >&2; exit 1; }
-trap 'fail "Script abgebrochen (exit code $?)"' ERR
+[[ -f "$ENV_FILE" ]] && source "$ENV_FILE"
+: "${AWS_REGION:=us-east-1}"
+: "${BACKUP_ROOT:=/var/backups}"
 
-# IMDSv2: Instance-ID holen
-TOKEN=$(curl -s -X PUT "http://169.254.169.254/latest/api/token" -H "X-aws-ec2-metadata-token-ttl-seconds: 21600")
-INSTANCE_ID=$(curl -s -H "X-aws-ec2-metadata-token: $TOKEN" http://169.254.169.254/latest/meta-data/instance-id)
-DATE="$(date +%F)"
-AMI_NAME="${NAME_PREFIX}-${INSTANCE_ID}-${DATE}"
+if [[ -f "$NOTIFY_LIB" ]]; then
+  source "$NOTIFY_LIB"
+else
+  notify(){ echo "[NOTIFY:$1] $2" >&2; }
+fi
 
-# 1) AMI erstellen (keinen Reboot erzwingen)
-AMI_ID=$(aws ec2 create-image --region "$AWS_REGION" \
-  --instance-id "$INSTANCE_ID" --name "$AMI_NAME" --description "Weekly AMI ${DATE}" \
-  --no-reboot --query 'ImageId' --output text)
+LOG_DIR="$BACKUP_ROOT/logs"
+mkdir -p "$LOG_DIR"
+TS=$(date -u +%Y%m%dT%H%M%SZ)
+LOG="$LOG_DIR/weekly-$TS.log"
+exec > >(tee -a "$LOG") 2>&1
 
-# Optional: warten bis verfügbar
-aws ec2 wait image-available --region "$AWS_REGION" --image-ids "$AMI_ID"
+fail(){
+  local msg="$1"
+  echo "[ERROR] $msg"
+  notify "WEEKLY IMAGE FAILED – $(hostname -s)" "Zeit: $TS
+Host: $(hostname -s)
+Fehler: $msg
+Log: $LOG"
+}
+trap 'rc=$?; if (( rc!=0 )); then fail "Exit code $rc"; fi' EXIT
 
-# 2) Taggen
+echo "== M143 Weekly Image gestartet @ $TS =="
+
+IMDS="http://169.254.169.254/latest/meta-data/instance-id"
+INSTANCE_ID="$(curl -fsS "$IMDS")"
+[[ -z "$INSTANCE_ID" ]] && fail "Konnte Instance-ID nicht bestimmen"
+
+AMI_NAME="m143-$(hostname -s)-$TS"
+echo "[INFO] Erzeuge AMI ohne Reboot: $AMI_NAME (Instance: $INSTANCE_ID)"
+AMI_ID=$(aws ec2 create-image \
+  --region "$AWS_REGION" \
+  --instance-id "$INSTANCE_ID" \
+  --name "$AMI_NAME" \
+  --no-reboot \
+  --output text)
+echo "[OK] AMI angelegt: $AMI_ID"
+
 aws ec2 create-tags --region "$AWS_REGION" --resources "$AMI_ID" \
-  --tags Key=Name,Value="$AMI_NAME" Key=Project,Value=M143
+  --tags Key=Name,Value="$AMI_NAME" Key=Project,Value="M143" Key=Backup,Value="weekly"
 
-# 3) Aufräumen (älter als RETENTION_WEEKS)
-CUTOFF_SECONDS=$(( $(date +%s) - (RETENTION_WEEKS*7*24*3600) ))
-IMAGES_JSON=$(aws ec2 describe-images --region "$AWS_REGION" --owners self \
-  --filters "Name=name,Values=${NAME_PREFIX}-${INSTANCE_ID}-*" )
+KEEP=4
+echo "[INFO] Prune: behalte die letzten $KEEP AMIs"
+AMI_LIST=$(aws ec2 describe-images --region "$AWS_REGION" \
+  --owners self \
+  --filters "Name=name,Values=m143-$(hostname -s)-*" \
+  --query 'Images[].{ID:ImageId,Name:Name,CreationDate:CreationDate}' \
+  --output json)
 
-for row in $(echo "$IMAGES_JSON" | jq -r '.Images[] | @base64'); do
-  _jq() { echo "${row}" | base64 -d | jq -r "${1}"; }
-  create_date=$(_jq '.CreationDate')                # ISO8601
-  ami_id=$(_jq '.ImageId')
-  ami_name=$(_jq '.Name')
-  created_ts=$(date -d "$create_date" +%s || date -j -f "%Y-%m-%dT%H:%M:%S%z" "$create_date" +%s 2>/dev/null || echo 0)
-  if [ "$created_ts" -gt 0 ] && [ "$created_ts" -lt "$CUTOFF_SECONDS" ]; then
-    # Snapshots der AMI ermitteln
-    snaps=$(echo "$IMAGES_JSON" | jq -r ".Images[] | select(.ImageId==\"$ami_id\") | .BlockDeviceMappings[]?.Ebs?.SnapshotId | select(.!=null)")
-    aws ec2 deregister-image --region "$AWS_REGION" --image-id "$ami_id"
-    for sid in $snaps; do
-      aws ec2 delete-snapshot --region "$AWS_REGION" --snapshot-id "$sid" || true
-    done
-  fi
+TO_DELETE=$(python3 - <<'PY'
+import json,sys
+KEEP=4
+imgs=sorted(json.load(sys.stdin), key=lambda x:x["CreationDate"], reverse=True)
+for img in imgs[KEEP:]:
+    print(img["ID"])
+PY
+<<< "$AMI_LIST")
+
+for id in $TO_DELETE; do
+  echo "[INFO] Deregister $id"
+  aws ec2 deregister-image --region "$AWS_REGION" --image-id "$id" || true
 done
 
-notify "M143 BACKUP OK – weekly AMI" "AMI erstellt: ${AMI_ID} (${AMI_NAME}) und alte AMIs > ${RETENTION_WEEKS} Wochen entfernt."
-echo "AMI OK: $AMI_ID"
+echo "[SUCCESS] Weekly Image erfolgreich. AMI: $AMI_ID"
+notify "WEEKLY IMAGE OK – $(hostname -s)" "Zeit: $TS
+AMI: $AMI_ID
+Name: $AMI_NAME
+Log: $LOG"
