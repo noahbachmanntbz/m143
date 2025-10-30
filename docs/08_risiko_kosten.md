@@ -84,5 +84,3 @@
 - **Sicherheit:** Risiko von Datenverlust wird stark reduziert (Redundanz, Verschlüsselung, Versionierung).  
 - **Wirtschaftlichkeit:** Sehr kostengünstig, da AWS-Dienste nur im kleinen Maßstab genutzt werden.  
 - **Rest-Risiko:** bleibt bei menschlichen Fehlern und Cyberangriffen, aber Maßnahmen reduzieren den Schaden.
-
----
