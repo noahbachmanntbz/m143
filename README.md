@@ -102,7 +102,7 @@ Beispiel: Wenn der RPO 1 Tag beträgt, dürfen im schlimmsten Fall nur Daten ver
 - [Restore-Anleitungen](docs/05_restore_guides.md)  
 - [Testprotokolle](docs/06_testprotokolle.md)  
 - [Betrieb & Wartung](docs/07_betrieb_wartung.md)  
-- [Risiko- & Kostenanalyse](docs/08_risiko_kosten.md)  
+- [Risiko & Kostenanalyse](docs/08_risiko_kosten.md)  
 
 ---
 
