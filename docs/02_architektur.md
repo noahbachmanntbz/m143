@@ -32,7 +32,7 @@ Backups werden automatisiert in **S3** gespeichert und mit **Lifecycle-Richtlini
    - **Lifecycle-Policy:**  
      - 30 Tage → Standard Storage  
      - 31–90 Tage → Glacier  
-     - >90 Tage → automatische Löschung  
+     - 90 Tage → automatische Löschung  
 
 4. **Cronjobs**  
    - Steuern den täglichen und wöchentlichen Ablauf der Skripte  
