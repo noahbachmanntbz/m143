@@ -82,7 +82,7 @@ Beispiel: Wenn der RPO 1 Tag beträgt, dürfen im schlimmsten Fall nur Daten ver
 4. **RDS Wiederherstellung** via Snapshot  
 5. **DB-Dump Restore** (S3 → EC2 → MySQL Import)  
 
-➡️ Details siehe [`docs/restore_tests`](docs/restore_tests)
+➡️ Details siehe [`docs/restore_tests`](docs/restore_tests.md)
 
 ---
 
