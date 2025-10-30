@@ -71,7 +71,3 @@ Backups werden automatisiert in **S3** gespeichert und mit **Lifecycle-Richtlini
 - Blau = AWS Ressourcen (EC2, RDS, S3)  
 - Grün = Backup-Prozesse (Cronjobs, Skripte)  
 - Rot = Restore-Szenarien  
-
----
-
-✅ Die Architektur stellt sicher, dass Backups zuverlässig, sicher und DSGVO-konform gespeichert werden.
