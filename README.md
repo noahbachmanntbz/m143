@@ -98,7 +98,7 @@ Beispiel: Wenn der RPO 1 Tag beträgt, dürfen im schlimmsten Fall nur Daten ver
 - [Use Case & Anforderungen](docs/01_usecase.md)  
 - [Architektur & Diagramme](docs/02_architektur.md)  
 - [Backup-Konzept](docs/03_backup_konzept.md)  
-- [Umsetzung & Skripte](docs/04_umsetzung.md)  
+- [Umsetzung](docs/04_umsetzung.md)  
 - [Restore-Anleitungen](docs/05_restore_guides.md)  
 - [Testprotokolle](docs/06_testprotokolle.md)  
 - [Betrieb & Wartung](docs/07_betrieb_wartung.md)  
