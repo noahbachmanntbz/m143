@@ -5,9 +5,7 @@ Dieses Projekt wurde im Rahmen des Moduls **M143 – Backup- und Restore-Systeme
 Ziel ist der Aufbau eines **hybriden Backup- und Restore-Systems** in **AWS**, das speziell auf die Anforderungen einer **Schule** zugeschnitten ist.  
 
 Im Fokus steht eine **Schul-Datenbank** mit sensiblen Daten wie **Stammdaten, Noten, Absenzen und Benutzerkonten**.  
-Ein Datenverlust oder Ausfall hätte direkte Auswirkungen auf den Schulbetrieb (z. B. Verlust von Noten oder Fehltagen).  
-
-Alle Projektdetails sind in **Markdown** dokumentiert und im **GitLab-Repository** versioniert.  
+Ein Datenverlust oder Ausfall hätte direkte Auswirkungen auf den Schulbetrieb (z. B. Verlust von Noten oder Fehltagen).
 
 ---
 
@@ -20,6 +18,19 @@ Alle Projektdetails sind in **Markdown** dokumentiert und im **GitLab-Repository
   - **RTO (Recovery Time Objective):** max. 2 Stunden  
   - **RPO (Recovery Point Objective):** max. 1 Tag  
 
+**RTO (Recovery Time Objective)**  
+Der RTO beschreibt die maximale Zeitspanne, die ein System oder eine Anwendung nach einem Ausfall benötigen darf, um wieder funktionsfähig zu sein.  
+Beispiel: Wenn der RTO 2 Stunden beträgt, muss das System innerhalb von 2 Stunden nach dem Ausfall wiederhergestellt sein.
+
+**RPO (Recovery Point Objective)**  
+Der RPO definiert den maximal tolerierbaren Datenverlust, gemessen in Zeit.  
+Beispiel: Wenn der RPO 1 Tag beträgt, dürfen im schlimmsten Fall nur Daten verloren gehen, die innerhalb des letzten Tages vor dem Ausfall entstanden sind.
+
+**Zusammenfassung:**  
+- **RTO** = Wie schnell muss das System wieder laufen?  
+- **RPO** = Wie viele Daten darf ich verlieren?
+
+Beide Werte sind essenziell für die Planung von Backup- und Disaster-Recovery-Strategien.
 - **Rahmenbedingungen:**  
   - Rechtliche Vorgaben: **DSG / DSGVO**, BSI-IT-Grundschutz  
   - Cloud: **AWS Learner Lab** (Budget: 50 $)  
