@@ -70,7 +70,3 @@ Dieses Dokument beschreibt das Backup-Konzept für die Schul-Datenbank und die d
 - Logs werden in `/var/backups/logs/` gespeichert
 - Mail-Benachrichtigung bei Fehlern oder Erfolg
 - Test-Wiederherstellungen dokumentiert
-
----
-
-Das Backup-Konzept stellt sicher, dass die Schule bei Ausfällen oder Datenverlust den Betrieb innerhalb weniger Stunden wieder aufnehmen kann.
