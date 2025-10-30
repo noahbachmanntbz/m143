@@ -30,7 +30,6 @@ Beispiel: Wenn der RPO 1 Tag beträgt, dürfen im schlimmsten Fall nur Daten ver
 - **RTO** = Wie schnell muss das System wieder laufen?  
 - **RPO** = Wie viele Daten darf ich verlieren?
 
-Beide Werte sind essenziell für die Planung von Backup- und Disaster-Recovery-Strategien.
 - **Rahmenbedingungen:**  
   - Rechtliche Vorgaben: **DSG / DSGVO**, BSI-IT-Grundschutz  
   - Cloud: **AWS Learner Lab** (Budget: 50 $)  
