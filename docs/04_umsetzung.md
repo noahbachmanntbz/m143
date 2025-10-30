@@ -104,7 +104,3 @@ MAILTO=""
 │   └── m143-rds.log
 └── tmp/
 ```
-
----
-
-Damit ist die komplette Automatisierung eingerichtet: Backups laufen täglich, Snapshots werden erstellt, alles landet in S3, und Fehler werden per Mail gemeldet.
