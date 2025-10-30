@@ -53,8 +53,4 @@ damit die Schule bei Systemausfällen oder Datenverlust den Betrieb schnell wied
 
 - **Kosten:**  
   - Nutzung von AWS Learner Lab (Budget max. 50 $)  
-  - Effiziente Speicherung durch Lifecycle-Regeln (S3 → Glacier)  
-
----
-
-✅ Mit diesem Use Case ist sichergestellt, dass die Schule vor Datenverlust geschützt ist und bei Ausfällen schnell weiterarbeiten kann.
+  - Effiziente Speicherung durch Lifecycle-Regeln (S3 → Glacier)
