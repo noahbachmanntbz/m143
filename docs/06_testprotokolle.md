@@ -53,7 +53,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 4. **Datei extrahieren und wiederherstellen**
    ```bash
    tar -tzf /tmp/files_20250923.tar.gz | grep m143/testdata/app.conf
-   sudo tar -xvzf /tmp/files_20250923.tar.gz -C / opt/m143/testdata/app.conf
+   sudo tar -xvzf /tmp/files_20250923.tar.gz -C /opt/m143/testdata/app.conf
    sha256sum /opt/m143/testdata/app.conf
    ```
    **Checksum (restored):** `3f8c4d9a2b1e5f6a7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b`
