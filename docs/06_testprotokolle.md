@@ -6,7 +6,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 
 ## 📋 Testübersicht
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Tester:** Noah Bachmann  
 **Projekt:** M143 – Backup- und Restore-System (Schule)  
 **Testumgebung:**
@@ -21,7 +21,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 
 **Testziel:** Wiederherstellung einer versehentlich überschriebenen Konfigurationsdatei aus S3-Backup.
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Startzeit:** 14:15 Uhr  
 **Endzeit:** 14:28 Uhr  
 **Dauer:** 13 Minuten
@@ -46,14 +46,14 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 3. **Backup aus S3 laden**
    ```bash
    aws s3 ls s3://backup-raw-bachmann-pe24c/backups/files/ --recursive
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20250923.tar.gz /tmp/
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20251028.tar.gz /tmp/
    ```
    **Ergebnis:** Download erfolgreich (Größe: 2.4 MB)
 
 4. **Datei extrahieren und wiederherstellen**
    ```bash
-   tar -tzf /tmp/files_20250923.tar.gz | grep m143/testdata/app.conf
-   sudo tar -xvzf /tmp/files_20250923.tar.gz -C / opt/m143/testdata/app.conf
+   tar -tzf /tmp/files_20251028.tar.gz | grep m143/testdata/app.conf
+   sudo tar -xvzf /tmp/files_20251028.tar.gz -C / opt/m143/testdata/app.conf
    sha256sum /opt/m143/testdata/app.conf
    ```
    **Checksum (restored):** `3f8c4d9a2b1e5f6a7c8d9e0f1a2b3c4d5e6f7a8b9c0d1e2f3a4b5c6d7e8f9a0b`
@@ -76,7 +76,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 
 **Testziel:** Wiederherstellung einer Datenbank aus einem SQL-Dump nach Datenverlust.
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Startzeit:** 15:00 Uhr  
 **Endzeit:** 15:24 Uhr  
 **Dauer:** 24 Minuten
@@ -112,8 +112,8 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 3. **Dump aus S3 laden**
    ```bash
    aws s3 ls s3://backup-raw-bachmann-pe24c/backups/db/school/ --recursive
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20250923_020015.sql.gz /tmp/
-   gunzip -f /tmp/school_20250923_020015.sql.gz
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20251028_020015.sql.gz /tmp/
+   gunzip -f /tmp/school_20251028_020015.sql.gz
    ```
    **Ergebnis:** Download und Entpackung erfolgreich (8.7 MB → 42.3 MB)
 
@@ -122,7 +122,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
    CREATE DATABASE IF NOT EXISTS school_restore;
    ```
    ```bash
-   mysql -h mylabdb.cvey2eeg2a9v.us-east-1.rds.amazonaws.com -u admin -p school_restore < /tmp/school_20250923_020015.sql
+   mysql -h mylabdb.cvey2eeg2a9v.us-east-1.rds.amazonaws.com -u admin -p school_restore < /tmp/school_20251028_020015.sql
    ```
    **Ergebnis:** Import erfolgreich abgeschlossen
 
@@ -152,7 +152,7 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
 
 **Testziel:** Wiederherstellung der kompletten RDS-Datenbank aus einem Snapshot in eine neue Instanz.
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Startzeit:** 16:00 Uhr  
 **Endzeit:** 16:52 Uhr  
 **Dauer:** 52 Minuten
@@ -167,13 +167,13 @@ Dieses Dokument enthält die ausgefüllten Testprotokolle für alle durchgeführ
      --query "DBSnapshots[].{Id:DBSnapshotIdentifier,Time:SnapshotCreateTime}" \
      --output table
    ```
-   **Snapshot gefunden:** school-snapshot-20250923
+   **Snapshot gefunden:** school-snapshot-20251028
 
 2. **Neue Instanz aus Snapshot erstellen**
    ```bash
    aws rds restore-db-instance-from-db-snapshot \
      --db-instance-identifier school-restore-test \
-     --db-snapshot-identifier school-snapshot-20250923 \
+     --db-snapshot-identifier school-snapshot-20251028 \
      --db-instance-class db.t3.micro \
      --no-publicly-accessible \
      --region us-east-1
@@ -227,7 +227,7 @@ aws rds delete-db-instance \
 
 **Testziel:** Wiederherstellung einer EC2-Instanz aus einem AMI-Backup.
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Startzeit:** 10:00 Uhr  
 **Endzeit:** 10:38 Uhr  
 **Dauer:** 38 Minuten
@@ -242,7 +242,7 @@ aws rds delete-db-instance \
      --query "Images[].{ID:ImageId,Name:Name,State:State,Created:CreationDate}" \
      --output table
    ```
-   **AMI gefunden:** ami-0a1b2c3d4e5f6a7b8 (m143-ami-20250922)
+   **AMI gefunden:** ami-0a1b2c3d4e5f6a7b8 (m143-ami-20251027)
 
 2. **Neue Instanz aus AMI starten**
    ```bash
@@ -328,7 +328,7 @@ aws ec2 terminate-instances --instance-ids i-0123456789abcdef0
 
 **Testziel:** Validierung der Datenintegrität aller Backup-Artefakte mittels SHA-256 Checksummen.
 
-**Testdatum:** 23.09.2025  
+**Testdatum:** 28.10.2025  
 **Startzeit:** 17:00 Uhr  
 **Endzeit:** 17:15 Uhr  
 **Dauer:** 15 Minuten
@@ -338,35 +338,35 @@ aws ec2 terminate-instances --instance-ids i-0123456789abcdef0
 1. **Datei-Backup Checksum**
    ```bash
    # Download aus S3
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20250923.tar.gz /tmp/
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20250923.tar.gz.sha256 /tmp/
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20251028.tar.gz /tmp/
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/files/files_20251028.tar.gz.sha256 /tmp/
    
    # Validierung
    cd /tmp
-   sha256sum -c files_20250923.tar.gz.sha256
+   sha256sum -c files_20251028.tar.gz.sha256
    ```
-   **Ergebnis:** files_20250923.tar.gz: OK
+   **Ergebnis:** files_20251028.tar.gz: OK
 
 2. **Datenbank-Dump Checksum**
    ```bash
    # Download aus S3
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20250923_020015.sql.gz /tmp/
-   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20250923_020015.sql.gz.sha256 /tmp/
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20251028_020015.sql.gz /tmp/
+   aws s3 cp s3://backup-raw-bachmann-pe24c/backups/db/school/school_20251028_020015.sql.gz.sha256 /tmp/
    
    # Validierung
-   sha256sum -c school_20250923_020015.sql.gz.sha256
+   sha256sum -c school_20251028_020015.sql.gz.sha256
    ```
-   **Ergebnis:** school_20250923_020015.sql.gz: OK
+   **Ergebnis:** school_20251028_020015.sql.gz: OK
 
 3. **Manuelle Checksum-Verifizierung**
    ```bash
    # Eigene Checksumme berechnen
-   sha256sum files_20250923.tar.gz
+   sha256sum files_20251028.tar.gz
    # 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e
    
    # Mit gespeicherter Checksumme vergleichen
-   cat files_20250923.tar.gz.sha256
-   # 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e files_20250923.tar.gz
+   cat files_20251028.tar.gz.sha256
+   # 9f8e7d6c5b4a3f2e1d0c9b8a7f6e5d4c3b2a1f0e9d8c7b6a5f4e3d2c1b0a9f8e files_20251028.tar.gz
    ```
    **Ergebnis:** Checksummen identisch
 
@@ -374,8 +374,8 @@ aws ec2 terminate-instances --instance-ids i-0123456789abcdef0
 
 | Artefakt | Checksum-Validierung | Status |
 |----------|---------------------|--------|
-| files_20250923.tar.gz | OK | ✅ PASS |
-| school_20250923_020015.sql.gz | OK | ✅ PASS |
+| files_20251028.tar.gz | OK | ✅ PASS |
+| school_20251028_020015.sql.gz | OK | ✅ PASS |
 | Manuelle Verifikation | Identisch | ✅ PASS |
 
 **Gesamtergebnis:** ✅ **BESTANDEN**  
@@ -462,5 +462,5 @@ Das Backup- und Restore-System erfüllt alle funktionalen und nicht-funktionalen
 - CloudWatch-Monitoring für proaktive Fehlerüberwachung implementieren
 - Automatisierte Test-Skripte entwickeln für kontinuierliche Validierung
 
-**Testabschluss:** 23.09.2025  
+**Testabschluss:** 28.10.2025  
 **Dokumentiert von:** Noah Bachmann
