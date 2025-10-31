@@ -215,16 +215,6 @@ Akzeptanz: **OK** für alle geprüften Dateien.
 
 ---
 
-## 10) Screenshots & Evidenz (einfügen)
-
-- AMI-Liste mit `m143-ami-<Datum>`  
-- S3-Objekte unter `backups/db/school/`  
-- RDS-Snapshot-Übersicht  
-- OK-/FAIL-Mails (Betreff + Zeit)  
-- Konsolen-/Shell-Outputs der Tests
-
----
-
 ## 11) Fazit
 
 - Alle Wiederherstellungspfade funktionieren (Datei, DB-Dump, Snapshot, AMI).  
