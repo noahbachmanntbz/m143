@@ -432,13 +432,6 @@ aws ec2 terminate-instances --instance-ids i-0123456789abcdef0
 
 ## 📎 Anhänge
 
-### Screenshots
-- ✓ AMI-Liste in AWS Console
-- ✓ S3-Bucket-Struktur mit Backup-Objekten
-- ✓ RDS-Snapshot-Übersicht
-- ✓ E-Mail-Benachrichtigungen (Erfolg/Fehler)
-- ✓ Shell-Outputs der Test-Durchführungen
-
 ### Referenzdokumente
 - [03_backup_konzept.md](./03_backup_konzept.md) – Backup-Konzept
 - [05_restore_guides.md](./05_restore_guides.md) – Restore-Anleitungen
@@ -457,10 +450,4 @@ Das Backup- und Restore-System erfüllt alle funktionalen und nicht-funktionalen
 - ✅ Datenintegrität ist durch Checksummen-Validierung gesichert
 - ✅ System ist produktionsreif
 
-**Nächste Schritte:**
-- Regelmäßige monatliche Validierungstests einplanen
-- CloudWatch-Monitoring für proaktive Fehlerüberwachung implementieren
-- Automatisierte Test-Skripte entwickeln für kontinuierliche Validierung
-
-**Testabschluss:** 28.10.2025  
-**Dokumentiert von:** Noah Bachmann
+**Testabschluss:** 28.10.2025
